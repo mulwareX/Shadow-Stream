@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Stream - Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cyber': {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glow { box-shadow: 0 0 20px rgba(14, 165, 233, 0.3); }
+        .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+        .text-glow { text-shadow: 0 0 10px rgba(14, 165, 233, 0.5); }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite alternate; }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(14, 165, 233, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.8); }
+        }
+        .bg-matrix {
+            background-image: radial-gradient(circle at 1px 1px, rgba(14, 165, 233, 0.1) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        .terminal {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen bg-matrix">
+    <!-- Header -->
+    <header class="bg-black bg-opacity-80 backdrop-blur-sm border-b border-cyber-500 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold text-glow">
+                        <span class="text-cyber-400">SHADOW</span>
+                        <span class="text-green-400">STREAM</span>
+                    </div>
+                    <div class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
+                        COMMAND CENTER
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-xs text-gray-400">
+                        <span id="currentTime"></span>
+                    </div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-xs text-green-400">ONLINE</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Stats Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="terminal glow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-400">TOTAL CLIENTS</h3>
+                    <div class="w-2 h-2 bg-cyber-500 rounded-full animate-pulse"></div>
+                </div>
+                <div class="text-3xl font-bold text-cyber-400" id="totalClients">0</div>
+            </div>
+            
+            <div class="terminal glow-green rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-400">ACTIVE CLIENTS</h3>
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+                <div class="text-3xl font-bold text-green-400" id="activeClients">0</div>
+            </div>
+            
+            <div class="terminal glow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-400">STREAMING</h3>
+                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                </div>
+                <div class="text-3xl font-bold text-purple-400" id="streamingClients">0</div>
+            </div>
+            
+            <div class="terminal glow rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-400">UPTIME</h3>
+                    <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                </div>
+                <div class="text-lg font-bold text-yellow-400" id="uptime">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Clients Section -->
+        <div class="terminal glow rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-glow">CONNECTED CLIENTS</h2>
+                <button onclick="refreshClients()" class="bg-cyber-600 hover:bg-cyber-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 glow">
+                    REFRESH
+                </button>
+            </div>
+            
+            <div id="clientsContainer" class="space-y-4">
+                <!-- Clients will be populated here -->
+            </div>
+            
+            <div id="noClients" class="text-center py-12 text-gray-500 hidden">
+                <div class="text-6xl mb-4">👥</div>
+                <div class="text-lg font-medium">No clients connected</div>
+                <div class="text-sm">Waiting for clients to register...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let clients = [];
+        let refreshInterval;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            refreshClients();
+            refreshInterval = setInterval(refreshClients, 2000);
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+        }
+
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        async function refreshClients() {
+            try {
+                const response = await fetch('/api/clients');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clients = data.clients;
+                    updateClientsDisplay();
+                    await updateStats();
+                }
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalClients').textContent = stats.total_clients;
+                    document.getElementById('activeClients').textContent = stats.active_clients;
+                    document.getElementById('streamingClients').textContent = stats.streaming_clients;
+                    document.getElementById('uptime').textContent = formatUptime(stats.server_uptime);
+                }
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        function updateClientsDisplay() {
+            const container = document.getElementById('clientsContainer');
+            const noClients = document.getElementById('noClients');
+            
+            if (clients.length === 0) {
+                container.innerHTML = '';
+                noClients.classList.remove('hidden');
+                return;
+            }
+            
+            noClients.classList.add('hidden');
+            
+            container.innerHTML = clients.map(client => {
+                const statusColor = client.is_active ? 
+                    (client.status === 'streaming' ? 'text-purple-400' : 'text-green-400') : 
+                    'text-red-400';
+                
+                const statusText = client.is_active ? 
+                    (client.status === 'streaming' ? 'STREAMING' : 'ACTIVE') : 
+                    'OFFLINE';
+                
+                const glowClass = client.is_active ? 
+                    (client.status === 'streaming' ? 'animate-pulse-glow' : 'glow-green') : 
+                    'glow-red';
+                
+                return `
+                    <div class="bg-gray-800 bg-opacity-50 rounded-lg p-4 border border-gray-700 ${glowClass}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
+                                    <span class="text-xl">🖥️</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white">${client.username}@${client.hostname}</div>
+                                    <div class="text-sm text-gray-400">ID: ${client.client_id.substring(0, 8)}...</div>
+                                    <div class="text-xs ${statusColor} font-medium">${statusText}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                ${client.has_stream ? `
+                                    <button onclick="viewStream('${client.client_id}')" 
+                                            class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                                        <span>👁️</span>
+                                        <span>VIEW</span>
+                                    </button>
+                                ` : `
+                                    <button disabled class="bg-gray-600 text-gray-400 px-3 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+                                        NO STREAM
+                                    </button>
+                                `}
+                                
+                                <div class="text-right text-xs text-gray-400">
+                                    <div>Registered: ${new Date(client.registered_at).toLocaleString()}</div>
+                                    <div>Last Seen: ${new Date(client.last_heartbeat).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function viewStream(clientId) {
+            window.open(`/view/${clientId}`, '_blank');
+        }
+    </script>
+</body>
+</html>

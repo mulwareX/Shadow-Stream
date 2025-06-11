@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Stream - Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glow { box-shadow: 0 0 20px rgba(14, 165, 233, 0.3); }
+        .text-glow { text-shadow: 0 0 10px rgba(14, 165, 233, 0.5); }
+        .bg-matrix {
+            background-image: radial-gradient(circle at 1px 1px, rgba(14, 165, 233, 0.1) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        .terminal {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+        #streamImage {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid rgba(14, 165, 233, 0.5);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen bg-matrix">
+    <header class="bg-black bg-opacity-80 backdrop-blur-sm border-b border-cyan-500 p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button onclick="window.close()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm">
+                    ← CLOSE
+                </button>
+                <h1 class="text-xl font-bold text-glow">STREAM VIEWER</h1>
+                <div class="text-sm text-gray-400">Client: {{ client_id }}</div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleFullscreen()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm">
+                    FULLSCREEN
+                </button>
+                <div id="status" class="text-sm text-green-400">CONNECTING...</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-6">
+        <div class="terminal glow rounded-lg p-6">
+            <div class="flex justify-center">
+                <img id="streamImage" src="" alt="Client Stream" style="display: none;">
+                <div id="noStream" class="text-center py-12 text-gray-500">
+                    <div class="text-6xl mb-4">📺</div>
+                    <div class="text-lg font-medium">Waiting for stream...</div>
+                    <div class="text-sm">Make sure the client is actively streaming</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const clientId = '{{ client_id }}';
+        let streamInterval;
+        let frameCount = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            startStream();
+        });
+
+        function startStream() {
+            streamInterval = setInterval(fetchFrame, 100);
+        }
+
+        async function fetchFrame() {
+            try {
+                const response = await fetch(`/api/stream/${clientId}`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    const img = document.getElementById('streamImage');
+                    const noStream = document.getElementById('noStream');
+                    
+                    img.src = imageUrl;
+                    img.style.display = 'block';
+                    noStream.style.display = 'none';
+                    
+                    frameCount++;
+                    document.getElementById('status').textContent = `STREAMING (${frameCount} frames)`;
+                    
+                    setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+                } else {
+                    document.getElementById('status').textContent = 'NO STREAM AVAILABLE';
+                }
+            } catch (error) {
+                console.error('Stream error:', error);
+                document.getElementById('status').textContent = 'CONNECTION ERROR';
+            }
+        }
+
+        function toggleFullscreen() {
+            const img = document.getElementById('streamImage');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                img.requestFullscreen().catch(err => {
+                    console.error('Fullscreen error:', err);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

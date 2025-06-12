@@ -3,6 +3,7 @@
 **ShadowStream** is a stealthy screen streaming tool that captures the victim's desktop silently and transmits it over HTTP as a series of image frames. Designed for red team operations and post-exploitation scenarios, ShadowStream is built for stealth, speed, and simplicity.
 
 ---
+![image](https://github.com/user-attachments/assets/80b0c8e4-1094-47bf-9ce3-dce033808066)
 
 ## ⚙️ Features
 
